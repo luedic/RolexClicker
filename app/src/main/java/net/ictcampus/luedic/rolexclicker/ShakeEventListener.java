@@ -4,16 +4,17 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.util.Log;
 
 class ShakeEventListener implements SensorEventListener{
 
     private static final int MIN_FORCE = 10;
 
-    private static final int MIN_DIRECTION_CHANGE = 1;
+    private static final int MIN_DIRECTION_CHANGE = 2;
 
-    private static final int MAX_PAUSE_BETHWEEN_DIRECTION_CHANGE = 200;
+    private static final int MAX_PAUSE_BETHWEEN_DIRECTION_CHANGE = 500;
 
-    private static final int MAX_TOTAL_DURATION_OF_SHAKE = 400;
+    private static final int MAX_TOTAL_DURATION_OF_SHAKE = 1000;
 
     private long mFirstDirectionChangeTime = 0;
 
@@ -48,47 +49,67 @@ class ShakeEventListener implements SensorEventListener{
     @Override
     public void onSensorChanged(SensorEvent event) {
 
-        float x = event.values[SensorManager.DATA_X];
-        float y = event.values[SensorManager.DATA_Y];
-        float z = event.values[SensorManager.DATA_Z];
+        //Log.d("XVal", String.valueOf(event.values[0]));
 
-        float totalMovement = Math.abs(x+y+z-lastX-lastY-lastZ);
+        float x = event.values[0];
+        float y = event.values[1];
+        float z = event.values[2];
 
-        if (totalMovement > MIN_FORCE){
+        float totalMovement = Math.abs(x + y + z - lastX - lastY - lastZ);
 
-            long now  = System.currentTimeMillis();
+        if (totalMovement > MIN_FORCE) {
+            //Log.d("Minforce", String.valueOf(totalMovement));
+            long now = System.currentTimeMillis();
 
             if (mFirstDirectionChangeTime == 0) {
+                //Log.d("firstset", String.valueOf(now));
+
                 mFirstDirectionChangeTime = now;
                 mLastDirectionChangeTime = now;
             }
 
             long lastChangeWasAgo = now - mLastDirectionChangeTime;
+            //----------------------
+            if (lastChangeWasAgo < MAX_PAUSE_BETHWEEN_DIRECTION_CHANGE) {
 
-            if(lastChangeWasAgo >= MIN_DIRECTION_CHANGE){
+                // store movement data
+                mLastDirectionChangeTime = now;
+                mDirectionChangeCount++;
 
-                long totalDuration = now - mFirstDirectionChangeTime;
-                if (totalDuration < MAX_TOTAL_DURATION_OF_SHAKE) {
-                    newShakeListener.onShake();
-                    resetShakeParameters();
+                // store last sensor data
+                lastX = x;
+                lastY = y;
+                lastZ = z;
+                //-------------------------
+                Log.d("Direction change", String.valueOf(mDirectionChangeCount));
+                //Log.d("duration", String.valueOf(lastChangeWasAgo));
+                if (mDirectionChangeCount >= MIN_DIRECTION_CHANGE) {
+                    Log.d("duration", String.valueOf(lastChangeWasAgo));
+                    long totalDuration = now - mFirstDirectionChangeTime;
+
+                    if (totalDuration < MAX_TOTAL_DURATION_OF_SHAKE) {
+                        Log.d("On shake", String.valueOf(totalMovement));
+                        newShakeListener.onShake();
+                        resetShakeParameters();
+                    }
                 }
             }
+            else {
 
-            else{
                 resetShakeParameters();
+
             }
 
         }
-
     }
-    private void resetShakeParameters() {
-        mFirstDirectionChangeTime = 0;
-        mDirectionChangeCount = 0;
-        mLastDirectionChangeTime = 0;
-        lastX = 0;
-        lastY = 0;
-        lastZ = 0;
-    }
+        private void resetShakeParameters () {
+            mFirstDirectionChangeTime = 0;
+            mDirectionChangeCount = 0;
+            mLastDirectionChangeTime = 0;
+            lastX = 0;
+            lastY = 0;
+            lastZ = 0;
+        }
 
 
     @Override

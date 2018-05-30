@@ -28,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
 
                 Toast.makeText(MainActivity.this, "Shake!", Toast.LENGTH_SHORT).show();
 
+
             }
         });
 
